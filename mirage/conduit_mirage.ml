@@ -280,7 +280,12 @@ module SSH (M : Mirage_clock.MCLOCK) = struct
   let connect (t : t) (`SSH (ip, port, user, cfg) : client) =
     match Astring.String.cuts ~sep:":" cfg with
     | cmd :: seed :: rt ->
-      let key = Awa.Keys.of_seed seed
+      let key_typ, seed' = match Astring.String.cut ~sep:"-" seed with
+        | None -> `Rsa, seed
+        | Some (t, s) -> match Awa.Keys.typ_of_string t with
+          | Error _ -> invalid_arg "bad key type" | Ok t -> t, s
+      in
+      let key = Awa.Keys.of_seed key_typ seed'
       and req = Awa.Ssh.Exec cmd
       and authenticator =
         let data = Astring.String.concat ~sep:":" rt in
